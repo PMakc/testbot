@@ -54,31 +54,35 @@ def run_web_server():
     server.serve_forever()
 
 def run_bot():
-    """Запускает Telegram бота"""
-    try:
-        # Импортируем и запускаем бота
-        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-        
-        # Замените на ваш способ запуска бота
-        # Если SantOS.py запускается при импорте:
-        import SantOS
-        logger.info("🤖 Bot imported successfully")
-        
-        # Или если есть функция main():
-        if hasattr(SantOS, 'main'):
-            SantOS.main()
-        else:
-            # Если код запускается сразу, просто импортируем
-            # и ждем в цикле
-            while True:
-                time.sleep(3600)
-                
-    except Exception as e:
-        logger.error(f"❌ Bot error: {e}")
-        # Все равно не падаем, чтобы Scalingo видел работающее приложение
-        while True:
-            time.sleep(60)
-            logger.info("💤 Bot sleeping...")
+    """Запускает Telegram бота БЕЗ импорта"""
+    logger.info("🤖 Запуск бота...")
+    
+    # Запускаем SantOS.py как отдельный процесс
+    import subprocess
+    
+    while True:
+        try:
+            process = subprocess.Popen(
+                ['python', 'SantOS.py'],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1
+            )
+            
+            # Читаем вывод бота
+            for line in iter(process.stdout.readline, ''):
+                if line.strip():
+                    logger.info(f"🤖 {line.strip()}")
+            
+            # Если процесс завершился
+            return_code = process.wait()
+            logger.warning(f"⚠️ Бот завершился, перезапуск через 5 сек...")
+            time.sleep(5)
+            
+        except Exception as e:
+            logger.error(f"❌ Ошибка: {e}")
+            time.sleep(10)
 
 def main():
     logger.info("🚀 Starting Santa Bot system...")

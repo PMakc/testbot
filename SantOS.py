@@ -31,7 +31,7 @@ def signal_handler(sig, frame):
     print("👋 До свидания!")
     sys.exit(0)
 
-signal.signal(signal.SIGINT, signal_handler)
+# signal.signal(signal.SIGINT, signal_handler)
 
 # --- Получаем токен из переменных окружения Scalingo ---
 BOT_TOKEN = os.environ.get('BOT_TOKEN')
@@ -1379,8 +1379,67 @@ def main():
             logger.error(f"❌ Ошибка в главном цикле: {e}")
             time.sleep(5)
 
-def run_santa_bot():
-    main()
+# В КОНЦЕ SantOS.py
 
-if __name__ == "__main__":
-    run_santa_bot()
+def start_bot():
+    """Функция для запуска бота"""
+    print("Загрузка данных...")
+    load_data()
+    
+    print("Проверка токена бота...")
+    if not check_bot_token():
+        print("❌ ОШИБКА: Неверный токен бота!")
+        return
+    
+    print("✅ Бот успешно запущен!")
+    print("📝 Логи сохраняются в santa_bot.log")
+    print("⚡ Режим: высокая производительности")
+    print("⏳ Ожидание сообщений...")
+    
+    offset = 0
+    consecutive_errors = 0
+    max_consecutive_errors = 5
+    
+    while True:
+        try:
+            url = f"{BASE_URL}/getUpdates"
+            params = {
+                'offset': offset + 1,
+                'timeout': 25,
+                'limit': 50
+            }
+            response = requests.get(url, params=params, timeout=30)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('ok'):
+                    updates = data.get('result', [])
+                    consecutive_errors = 0
+                    
+                    if updates:
+                        for update in updates:
+                            current_offset = update['update_id']
+                            if current_offset > offset:
+                                offset = current_offset
+                            process_update(update)
+                        
+                        if len(updates) > 10:
+                            logger.info(f"📨 Обработано {len(updates)} сообщений")
+                    else:
+                        time.sleep(0.1)
+                else:
+                    consecutive_errors += 1
+                    logger.error(f"❌ Ошибка API: {data}")
+            else:
+                consecutive_errors += 1
+                logger.error(f"❌ Ошибка HTTP: {response.status_code}")
+                if consecutive_errors >= max_consecutive_errors:
+                    logger.error("🔴 Слишком много ошибок подряд, перезапуск через 10 секунд...")
+                    time.sleep(10)
+                    consecutive_errors = 0
+            
+        except Exception as e:
+            consecutive_errors += 1
+            logger.error(f"❌ Ошибка в главном цикле: {e}")
+            time.sleep(5)
+
