@@ -57,7 +57,6 @@ def run_bot():
     """Запускает Telegram бота БЕЗ импорта"""
     logger.info("🤖 Запуск бота...")
     
-    # Запускаем SantOS.py как отдельный процесс
     import subprocess
     
     while True:
@@ -65,23 +64,43 @@ def run_bot():
             process = subprocess.Popen(
                 ['python', 'SantOS.py'],
                 stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
+                stderr=subprocess.PIPE,  # Отдельно stderr
                 text=True,
                 bufsize=1
             )
             
-            # Читаем вывод бота
-            for line in iter(process.stdout.readline, ''):
-                if line.strip():
-                    logger.info(f"🤖 {line.strip()}")
+            # Читаем stdout и stderr одновременно
+            import select
             
-            # Если процесс завершился
-            return_code = process.wait()
-            logger.warning(f"⚠️ Бот завершился, перезапуск через 5 сек...")
+            while True:
+                # Проверяем, есть ли что читать
+                reads = [process.stdout, process.stderr]
+                ret = select.select(reads, [], [], 1.0)
+                
+                for read in ret[0]:
+                    line = read.readline()
+                    if line:
+                        if read == process.stderr:
+                            logger.error(f"❌ БОТ ОШИБКА: {line.strip()}")
+                        else:
+                            logger.info(f"🤖 {line.strip()}")
+                
+                # Проверяем, завершился ли процесс
+                if process.poll() is not None:
+                    # Прочитать оставшиеся данные
+                    for line in process.stdout:
+                        logger.info(f"🤖 {line.strip()}")
+                    for line in process.stderr:
+                        logger.error(f"❌ БОТ ОШИБКА: {line.strip()}")
+                    
+                    return_code = process.returncode
+                    logger.warning(f"⚠️ Бот завершился с кодом {return_code}, перезапуск через 5 сек...")
+                    break
+            
             time.sleep(5)
             
         except Exception as e:
-            logger.error(f"❌ Ошибка: {e}")
+            logger.error(f"❌ Ошибка запуска: {e}")
             time.sleep(10)
 
 def main():
