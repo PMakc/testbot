@@ -1,1 +1,1 @@
-web: python SantOS.py
+web: ./start.sh
