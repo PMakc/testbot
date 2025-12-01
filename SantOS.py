@@ -1313,6 +1313,19 @@ def process_update(update):
         logger.error(f"❌ Ошибка обработки update: {e}")
 
 def main():
+    offset = 0
+    while True:  # ← ВАЖНО: бесконечный цикл!
+        try:
+            # Получаем обновления от Telegram
+            response = requests.get(f"{BASE_URL}/getUpdates", params={
+                'offset': offset + 1,
+                'timeout': 25,
+                'limit': 50
+            })
+            # ... обработка ...
+        except Exception as e:
+            # ... обработка ошибок ...
+            time.sleep(5)
     print("Загрузка данных...")
     load_data()
     
@@ -1442,4 +1455,6 @@ def start_bot():
             consecutive_errors += 1
             logger.error(f"❌ Ошибка в главном цикле: {e}")
             time.sleep(5)
-
+            
+if __name__ == "__main__":
+    start_bot()
