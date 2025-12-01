@@ -1379,5 +1379,8 @@ def main():
             logger.error(f"❌ Ошибка в главном цикле: {e}")
             time.sleep(5)
 
-if __name__ == "__main__":
+def run_santa_bot():
     main()
+
+if __name__ == "__main__":
+    run_santa_bot()
